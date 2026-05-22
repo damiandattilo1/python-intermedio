@@ -1,4 +1,5 @@
 import sqlite3
+import controlador
 
 def crear_base():
     return sqlite3.connect("materias.db")

@@ -60,7 +60,7 @@ def crear_interfaz():
         for fila in tree.get_children():
             tree.delete(fila)
 
-        for fila in controlador.listar():
+        for fila in controlador.Materia.listar():
             tree.insert("", "end", values=fila)
 
     def agregar():
@@ -71,7 +71,7 @@ def crear_interfaz():
             widgets["cantidadHoras"].get(),
         )
 
-        controlador.agregar(datos)
+        controlador.Materia.agregar(datos)
         actualizar_tabla()
 
     def eliminar():
