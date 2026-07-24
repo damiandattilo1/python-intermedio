@@ -32,8 +32,11 @@ def borrar(con, mi_id):
     con.cursor().execute("DELETE FROM materias WHERE id=?", (mi_id,))
     con.commit()
 
-def actualizar_materia(con, nombre, docente, mi_id):
-    con.cursor().execute("UPDATE materias SET nombre=?, docente=? WHERE id=?", (nombre, docente, mi_id))
+def actualizar_materia(con, nivel, nombre, docente, horas, mi_id):
+    con.cursor().execute(
+        "UPDATE materias SET nivel=?, nombre=?, docente=?, horas=? WHERE id=?",
+        (nivel, nombre, docente, horas, mi_id),
+    )
     con.commit()
 
 def obtener_todos(con):

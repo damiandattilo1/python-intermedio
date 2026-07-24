@@ -9,15 +9,21 @@ class Materia:
         return re.match(patron, nombre) is not None
 
     @staticmethod
+    def validar_horas(valor):
+        return valor.isdigit() and int(valor) > 0
+
+    @staticmethod
     def agregar(datos):
         if not Materia.validar_profesor(datos[2]):
-            print("Profesor inválido")
-            return
+            return False, "Profesor invalido"
+        if not Materia.validar_horas(datos[3]):
+            return False, "Horas debe ser un numero entero"
         con = modelo.crear_base()
         try:
             modelo.insertar(con, datos)
         finally:
             con.close()
+        return True, ""
 
     @staticmethod
     def listar():
@@ -36,9 +42,9 @@ class Materia:
             con.close()
 
     @staticmethod
-    def modificar(mi_id, nombre, docente):
+    def modificar(mi_id, nivel, nombre, docente, horas):
         con = modelo.crear_base()
         try:
-            modelo.actualizar_materia(con, nombre, docente, mi_id)
+            modelo.actualizar_materia(con, nivel, nombre, docente, horas, mi_id)
         finally:
             con.close()

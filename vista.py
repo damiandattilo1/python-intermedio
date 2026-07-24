@@ -122,8 +122,11 @@ def crear_interfaz():
             messagebox.showwarning("Campos requeridos", "Complete todos los campos antes de agregar.")
             return
 
-        datos = (nivel, nombre, docente, horas)
-        controlador.Materia.agregar(datos)
+        ok, msg = controlador.Materia.agregar((nivel, nombre, docente, horas))
+        if not ok:
+            messagebox.showwarning("Error de validacion", msg)
+            return
+
         limpiar_formulario()
         actualizar_tabla()
 
@@ -146,14 +149,20 @@ def crear_interfaz():
 
         valores = tree.item(seleccion[0])["values"]
         mi_id = int(valores[0])
+        nivel = widgets["nivel"].get()
         nombre = widgets["nombre"].get().strip()
         docente = widgets["docente"].get().strip()
+        horas = widgets["horas"].get().strip()
 
-        if not nombre or not docente:
-            messagebox.showwarning("Campos requeridos", "Ingrese nombre y docente.")
+        if not nombre or not docente or not horas:
+            messagebox.showwarning("Campos requeridos", "Complete todos los campos.")
             return
 
-        controlador.Materia.modificar(mi_id, nombre, docente)
+        if not horas.isdigit() or int(horas) <= 0:
+            messagebox.showwarning("Horas invalidas", "Las horas deben ser un numero entero mayor a 0.")
+            return
+
+        controlador.Materia.modificar(mi_id, nivel, nombre, docente, horas)
         actualizar_tabla()
 
     # Asignar comandos reales

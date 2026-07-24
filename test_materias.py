@@ -35,10 +35,12 @@ class TestModelo(unittest.TestCase):
         modelo.insertar(self.con, ("1", "Mate", "Juan", "4"))
         filas = modelo.obtener_todos(self.con)
         mi_id = filas[0][0]
-        modelo.actualizar_materia(self.con, "Algebra", "Maria Lopez", mi_id)
+        modelo.actualizar_materia(self.con, "2", "Algebra", "Maria Lopez", "6", mi_id)
         filas = modelo.obtener_todos(self.con)
+        self.assertEqual(filas[0][1], "2")
         self.assertEqual(filas[0][2], "Algebra")
         self.assertEqual(filas[0][3], "Maria Lopez")
+        self.assertEqual(filas[0][4], "6")
 
     def test_crear_tabla_idempotente(self):
         modelo.crear_tabla(self.con)
@@ -73,16 +75,35 @@ class TestControlador(unittest.TestCase):
         self.assertFalse(controlador.Materia.validar_profesor("Juan123"))
         self.assertFalse(controlador.Materia.validar_profesor(" Juan"))
 
+    def test_validar_horas_valido(self):
+        self.assertTrue(controlador.Materia.validar_horas("4"))
+        self.assertTrue(controlador.Materia.validar_horas("10"))
+        self.assertTrue(controlador.Materia.validar_horas("1"))
+
+    def test_validar_horas_invalido(self):
+        self.assertFalse(controlador.Materia.validar_horas(""))
+        self.assertFalse(controlador.Materia.validar_horas("abc"))
+        self.assertFalse(controlador.Materia.validar_horas("4.5"))
+        self.assertFalse(controlador.Materia.validar_horas("0"))
+        self.assertFalse(controlador.Materia.validar_horas("-3"))
+        self.assertFalse(controlador.Materia.validar_horas("4a"))
+
     def test_agregar_profesor_valido(self):
-        datos = ("1", "Mate", "Juan Perez", "4")
-        controlador.Materia.agregar(datos)
+        ok, _ = controlador.Materia.agregar(("1", "Mate", "Juan Perez", "4"))
+        self.assertTrue(ok)
         filas = controlador.Materia.listar()
         self.assertEqual(len(filas), 1)
         self.assertEqual(filas[0][3], "Juan Perez")
 
     def test_agregar_profesor_invalido_no_inserta(self):
-        datos = ("1", "Mate", "Juan123", "4")
-        controlador.Materia.agregar(datos)
+        ok, _ = controlador.Materia.agregar(("1", "Mate", "Juan123", "4"))
+        self.assertFalse(ok)
+        self.assertEqual(controlador.Materia.listar(), [])
+
+    def test_agregar_horas_invalidas_no_inserta(self):
+        ok, msg = controlador.Materia.agregar(("1", "Mate", "Juan Perez", "abc"))
+        self.assertFalse(ok)
+        self.assertIn("Horas", msg)
         self.assertEqual(controlador.Materia.listar(), [])
 
     def test_listar_vacio(self):
@@ -99,10 +120,12 @@ class TestControlador(unittest.TestCase):
         controlador.Materia.agregar(("1", "Mate", "Juan Perez", "4"))
         filas = controlador.Materia.listar()
         mi_id = filas[0][0]
-        controlador.Materia.modificar(mi_id, "Algebra", "Maria Lopez")
+        controlador.Materia.modificar(mi_id, "2", "Algebra", "Maria Lopez", "6")
         filas = controlador.Materia.listar()
+        self.assertEqual(filas[0][1], "2")
         self.assertEqual(filas[0][2], "Algebra")
         self.assertEqual(filas[0][3], "Maria Lopez")
+        self.assertEqual(filas[0][4], "6")
 
 
 class TestRutaBaseDatos(unittest.TestCase):
