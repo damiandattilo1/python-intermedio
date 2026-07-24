@@ -53,42 +53,44 @@ class Observador:
         raise NotImplementedError
 
 
-class ConcreteObserverA(Observador):
-    """Observador concreto A: registra logs en consola."""
+class LogObserver(Observador):
+    """Observador concreto: registra eventos CRUD via logging."""
 
-    def __init__(self, obj):
-        self.observador_a = obj
-        self.observador_a.agregar(self)
+    def __init__(self, tema=None):
+        self._tema = tema
         self.estado = None
+        if tema:
+            tema.agregar(self)
 
     def update(self):
-        self.estado = self.observador_a.get_estado()
+        self.estado = self._tema.get_estado()
         if isinstance(self.estado, dict):
             evento = self.estado.get("evento", "")
             if evento == "agregar":
-                nombre = self.estado.get("nombre", "?")
-                logger.info("[Observer A] INGRESO: Nueva materia '%s'", nombre)
+                logger.info("[Observer] INGRESO: Nueva materia '%s'",
+                            self.estado.get("nombre", "?"))
             elif evento == "eliminar":
-                mi_id = self.estado.get("id", "?")
-                logger.info("[Observer A] ELIMINACION: Materia ID %s", mi_id)
+                logger.info("[Observer] ELIMINACION: Materia ID %s",
+                            self.estado.get("id", "?"))
             elif evento == "modificar":
-                nombre = self.estado.get("nombre", "?")
-                logger.info("[Observer A] ACTUALIZACION: Materia '%s'", nombre)
+                logger.info("[Observer] ACTUALIZACION: Materia '%s'",
+                            self.estado.get("nombre", "?"))
             elif evento == "listar":
-                cantidad = self.estado.get("cantidad", 0)
-                logger.info("[Observer A] CONSULTA: %s materias", cantidad)
+                logger.info("[Observer] CONSULTA: %s materias",
+                            self.estado.get("cantidad", 0))
 
 
-class ConcreteObserverB(Observador):
-    """Observador concreto B: acumula historial en memoria."""
+class HistorialObserver(Observador):
+    """Observador concreto: acumula historial de eventos en memoria."""
 
-    def __init__(self, obj):
-        self.observador_b = obj
-        self.observador_b.agregar(self)
+    def __init__(self, tema=None):
+        self._tema = tema
         self.historial = []
+        if tema:
+            tema.agregar(self)
 
     def update(self):
-        estado = self.observador_b.get_estado()
+        estado = self._tema.get_estado()
         self.historial.append({"estado": estado})
 
     def obtener_historial(self):
@@ -99,31 +101,28 @@ class ConcreteObserverB(Observador):
 
 
 # ============================================================
-# Wrapper legacy: Subject/Observer para uso en controlador
+# Subject: wrapper para uso del controlador
 # ============================================================
 
 class Subject:
-    """Wrapper que adapta TemaConcreto al uso del controlador."""
+    """Subject que usa TemaConcreto para notificar observadores."""
 
     def __init__(self):
         self._tema = TemaConcreto()
-        self._observadores_legacy = []
+
+    @property
+    def tema(self):
+        return self._tema
 
     def agregar_observador(self, observador):
-        if hasattr(observador, "actualizar"):
-            self._observadores_legacy.append(observador)
-        else:
+        if observador._tema is None:
+            observador._tema = self._tema
             self._tema.agregar(observador)
 
     def eliminar_observador(self, observador):
-        if observador in self._observadores_legacy:
-            self._observadores_legacy.remove(observador)
-        else:
-            self._tema.quitar(observador)
+        self._tema.quitar(observador)
 
     def notificar(self, evento, datos=None):
-        for obs in self._observadores_legacy:
-            obs.actualizar(evento, datos)
         estado = {"evento": evento}
         if isinstance(datos, dict):
             estado.update(datos)
@@ -131,47 +130,3 @@ class Subject:
             estado["nombre"] = datos.nombre
             estado["datos"] = datos
         self._tema.set_estado(estado)
-
-
-class Observer:
-    """Interfaz base para observadores legacy."""
-    pass
-
-class LogObserver(Observer):
-    """Observador que registra eventos CRUD via logging."""
-
-    def actualizar(self, evento, datos=None):
-        if evento == "agregar":
-            nombre = datos.nombre if datos else "?"
-            logger.info("[OBSERVER] INGRESO: Nueva materia '%s' registrada", nombre)
-        elif evento == "eliminar":
-            mi_id = datos.get("id", "?") if datos else "?"
-            logger.info("[OBSERVER] ELIMINACION: Materia ID %s eliminada", mi_id)
-        elif evento == "modificar":
-            nombre = datos.nombre if datos else "?"
-            logger.info("[OBSERVER] ACTUALIZACION: Materia '%s' modificada", nombre)
-        elif evento == "listar":
-            cantidad = datos.get("cantidad", 0) if datos else 0
-            logger.info("[OBSERVER] CONSULTA: Listado de %s materias", cantidad)
-
-    def update(self):
-        pass
-
-
-class HistorialObserver(Observer):
-    """Observador que acumula un historial de eventos en memoria."""
-
-    def __init__(self):
-        self.historial = []
-
-    def actualizar(self, evento, datos=None):
-        self.historial.append({"evento": evento, "datos": datos})
-
-    def update(self):
-        pass
-
-    def obtener_historial(self):
-        return list(self.historial)
-
-    def limpiar(self):
-        self.historial.clear()

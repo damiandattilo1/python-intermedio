@@ -83,16 +83,15 @@ def modificar(self, materia): ...
 
 **Archivo:** `observador.py`
 
-Implementa el patron Observer para notificar a multiples observadores ante cada operacion CRUD.
+Implementa el patron Observer (Tema/Concreto) para notificar a multiples observadores ante cada operacion CRUD. Un solo sistema, sin duplicaciones.
 
 ### Estructura del patron
 
 | Concepto       | Clase               | Rol                                      |
 |----------------|----------------------|------------------------------------------|
 | **Tema**       | `Tema` / `TemaConcreto` | Sujeto observable, mantiene lista de observadores |
-| **Observador** | `Observador` / `ConcreteObserverA` / `ConcreteObserverB` | Reaccionan ante cambios de estado |
+| **Observador** | `Observador` / `LogObserver` / `HistorialObserver` | Reaccionan ante cambios de estado via `update()` |
 | **Subject**    | `Subject`            | Wrapper que adapta TemaConcreto al controlador |
-| **LogObserver**| `LogObserver`        | Observador concreto que registra eventos via logging |
 
 ### Flujo en el controlador
 
@@ -100,24 +99,24 @@ Implementa el patron Observer para notificar a multiples observadores ante cada 
 1. Vista llama ctrl.agregar(materia)
 2. Controlador ejecuta la operacion CRUD
 3. Controlador llama self.notificar("agregar", materia)
-4. Subject notifica a observadores legacy via metodo actualizar(evento, datos)
-5. Subject notifica a TemaConcreto via set_estado()
-6. TemaConcreto recorre sus observadores y llama update() a cada uno
+4. Subject construye un dict estado y llama self._tema.set_estado(estado)
+5. TemaConcreto recorre sus observadores y llama update() a cada uno
+6. Cada observador lee el estado con get_estado() y actua
 ```
+
+**Una sola cadena de notificacion**, sin duplicaciones.
 
 ### Observadores implementados
 
-- **`LogObserver`**: registra cada evento (agregar/eliminar/modificar/listar) via `logging.info` con prefijo `[OBSERVER]`
-- **`HistorialObserver`**: acumula todos los eventos en una lista en memoria (`self.historial`)
-- **`ConcreteObserverA`**: observer del curso que logea en consola
-- **`ConcreteObserverB`**: observer del curso que acumula historial
+- **`LogObserver`**: registra cada evento (agregar/eliminar/modificar/listar) via `logging.info` con prefijo `[Observer]`. Tambien almacena el ultimo estado en `self.estado`.
+- **`HistorialObserver`**: acumula todos los eventos en una lista en memoria (`self.historial`).
 
 ### Registro en la aplicacion
 
 En `vista.py:11`:
 ```python
 ctrl = MateriaControlador()
-ctrl.agregar_observador(LogObserver())
+ctrl.agregar_observador(LogObserver())  # Subject le asigna el tema
 ```
 
 **Ventaja:** Se pueden agregar multiples observadores (log, historial, notificaciones, etc.) sin modificar el controlador.

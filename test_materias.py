@@ -6,10 +6,9 @@ import unittest
 from modelo import Materia
 from patrones import MateriaDB, MateriaFactory, CalendarioExterno, CalendarioAdapter, FormatoMateriasDirecto
 from patrones import MateriaBasica, MateriaIntermedia, MateriaAvanzada
-from observador import TemaConcreto, ConcreteObserverA, ConcreteObserverB
+from observador import TemaConcreto, LogObserver, HistorialObserver
 from controlador import MateriaControlador
 from decoradores import log_agregar, log_eliminar, log_modificar
-from observador import Subject, LogObserver, HistorialObserver
 
 
 # ============================
@@ -179,31 +178,31 @@ class TestObserverCurso(unittest.TestCase):
 
     def test_tema_concreto_notifica(self):
         tema = TemaConcreto()
-        observer = ConcreteObserverA(tema)
+        observer = LogObserver(tema)
         tema.set_estado({"evento": "agregar", "nombre": "Mate"})
         self.assertEqual(observer.estado["evento"], "agregar")
 
     def test_dos_observers_notificados(self):
         tema = TemaConcreto()
-        obs_a = ConcreteObserverA(tema)
-        obs_b = ConcreteObserverB(tema)
+        obs_a = LogObserver(tema)
+        obs_b = HistorialObserver(tema)
         tema.set_estado({"evento": "eliminar", "id": 1})
         self.assertEqual(obs_a.estado["evento"], "eliminar")
         self.assertEqual(len(obs_b.historial), 1)
 
     def test_historial_observer(self):
         tema = TemaConcreto()
-        obs_b = ConcreteObserverB(tema)
+        obs_b = HistorialObserver(tema)
         tema.set_estado({"evento": "modificar", "nombre": "Algebra"})
         tema.set_estado({"evento": "listar", "cantidad": 5})
         self.assertEqual(len(obs_b.historial), 2)
 
     def test_quitar_observer(self):
         tema = TemaConcreto()
-        obs_a = ConcreteObserverA(tema)
-        tema.quitar(obs_a)
+        observer = LogObserver(tema)
+        tema.quitar(observer)
         tema.set_estado({"evento": "agregar", "nombre": "Mate"})
-        self.assertIsNone(obs_a.estado)
+        self.assertIsNone(observer.estado)
 
 
 # ============================
@@ -253,10 +252,10 @@ class TestDecoradores(unittest.TestCase):
 
 
 # ============================
-# 4) PATRÓN OBSERVER (legacy)
+# 4) PATRÓN OBSERVER
 # ============================
 
-class TestObservadorLegacy(unittest.TestCase):
+class TestObservadorControlador(unittest.TestCase):
 
     def setUp(self):
         self._tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
@@ -277,7 +276,7 @@ class TestObservadorLegacy(unittest.TestCase):
         m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         self.assertEqual(len(historial.historial), 1)
-        self.assertEqual(historial.historial[0]["evento"], "agregar")
+        self.assertEqual(historial.historial[0]["estado"]["evento"], "agregar")
 
     def test_observer_recibe_evento_eliminar(self):
         historial = HistorialObserver()
@@ -286,7 +285,7 @@ class TestObservadorLegacy(unittest.TestCase):
         materias = self.ctrl.listar()
         self.ctrl.agregar_observador(historial)
         self.ctrl.eliminar(materias[0].id)
-        eventos = [e["evento"] for e in historial.historial]
+        eventos = [e["estado"]["evento"] for e in historial.historial]
         self.assertIn("eliminar", eventos)
 
     def test_observer_recibe_evento_modificar(self):
@@ -297,7 +296,7 @@ class TestObservadorLegacy(unittest.TestCase):
         self.ctrl.agregar_observador(historial)
         materias[0].nombre = "Algebra"
         self.ctrl.modificar(materias[0])
-        eventos = [e["evento"] for e in historial.historial]
+        eventos = [e["estado"]["evento"] for e in historial.historial]
         self.assertIn("modificar", eventos)
 
     def test_observer_recibe_evento_listar(self):
@@ -305,7 +304,7 @@ class TestObservadorLegacy(unittest.TestCase):
         self.ctrl.agregar_observador(historial)
         self.ctrl.listar()
         self.assertEqual(len(historial.historial), 1)
-        self.assertEqual(historial.historial[0]["evento"], "listar")
+        self.assertEqual(historial.historial[0]["estado"]["evento"], "listar")
 
     def test_log_observer_imprime(self):
         log_obs = LogObserver()
@@ -313,7 +312,7 @@ class TestObservadorLegacy(unittest.TestCase):
         m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         with self.assertLogs("observador", level="INFO") as cm:
             self.ctrl.agregar(m)
-        self.assertTrue(any("OBSERVER" in msg for msg in cm.output))
+        self.assertTrue(any("Observer" in msg for msg in cm.output))
         self.assertTrue(any("Mate" in msg for msg in cm.output))
 
     def test_eliminar_observador(self):
@@ -325,8 +324,9 @@ class TestObservadorLegacy(unittest.TestCase):
         self.assertEqual(len(historial.historial), 0)
 
     def test_historial_limpiar(self):
-        historial = HistorialObserver()
-        historial.actualizar("agregar", Materia(nombre="Mate"))
+        tema = TemaConcreto()
+        historial = HistorialObserver(tema)
+        tema.set_estado({"evento": "agregar", "nombre": "Mate"})
         self.assertEqual(len(historial.historial), 1)
         historial.limpiar()
         self.assertEqual(len(historial.historial), 0)
