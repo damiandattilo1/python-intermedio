@@ -19,7 +19,10 @@ class MateriaControlador(Subject):
 
     @staticmethod
     def validar_horas(valor):
-        return valor.isdigit() and int(valor) > 0
+        try:
+            return int(valor) > 0
+        except (ValueError, TypeError):
+            return False
 
     @log_agregar
     def agregar(self, materia):

@@ -22,35 +22,44 @@ class TestMateria(unittest.TestCase):
         self.assertEqual(m.nivel, "1")
         self.assertEqual(m.nombre, "")
         self.assertEqual(m.docente, "")
-        self.assertEqual(m.horas, "4")
+        self.assertEqual(m.horas, 4)
+        self.assertIsInstance(m.horas, int)
 
     def test_creacion_con_valores(self):
-        m = Materia(id=1, nivel="3", nombre="Algebra", docente="Juan Perez", horas="6")
+        m = Materia(id=1, nivel="3", nombre="Algebra", docente="Juan Perez", horas=6)
         self.assertEqual(m.id, 1)
         self.assertEqual(m.nivel, "3")
         self.assertEqual(m.nombre, "Algebra")
         self.assertEqual(m.docente, "Juan Perez")
-        self.assertEqual(m.horas, "6")
+        self.assertEqual(m.horas, 6)
+        self.assertIsInstance(m.horas, int)
+
+    def test_creacion_horas_desde_string(self):
+        m = Materia(horas="6")
+        self.assertEqual(m.horas, 6)
+        self.assertIsInstance(m.horas, int)
 
     def test_equality(self):
-        a = Materia(nivel="1", nombre="Mate", docente="Juan", horas="4")
-        b = Materia(nivel="1", nombre="Mate", docente="Juan", horas="4")
-        c = Materia(nivel="2", nombre="Fisica", docente="Ana", horas="3")
+        a = Materia(nivel="1", nombre="Mate", docente="Juan", horas=4)
+        b = Materia(nivel="1", nombre="Mate", docente="Juan", horas=4)
+        c = Materia(nivel="2", nombre="Fisica", docente="Ana", horas=3)
         self.assertEqual(a, b)
         self.assertNotEqual(a, c)
 
     def test_a_tupla(self):
-        m = Materia(nivel="2", nombre="Fisica", docente="Ana", horas="3")
-        self.assertEqual(m.a_tupla(), ("2", "Fisica", "Ana", "3"))
+        m = Materia(nivel="2", nombre="Fisica", docente="Ana", horas=3)
+        self.assertEqual(m.a_tupla(), ("2", "Fisica", "Ana", 3))
 
     def test_desde_fila(self):
-        fila = (5, "1", "Mate", "Juan", "4")
+        fila = (5, "1", "Mate", "Juan", 4)
         m = Materia.desde_fila(fila)
         self.assertEqual(m.id, 5)
         self.assertEqual(m.nombre, "Mate")
+        self.assertEqual(m.horas, 4)
+        self.assertIsInstance(m.horas, int)
 
     def test_repr(self):
-        m = Materia(id=1, nivel="1", nombre="Mate", docente="Juan", horas="4")
+        m = Materia(id=1, nivel="1", nombre="Mate", docente="Juan", horas=4)
         self.assertIn("Mate", repr(m))
 
 
@@ -66,32 +75,36 @@ class TestMateriaDB(unittest.TestCase):
         os.unlink(self._tmp.name)
 
     def test_insertar_y_obtener(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas=4)
         self.db.insertar(m)
         materias = self.db.obtener_todos()
         self.assertEqual(len(materias), 1)
         self.assertEqual(materias[0].nombre, "Mate")
+        self.assertEqual(materias[0].horas, 4)
+        self.assertIsInstance(materias[0].horas, int)
 
     def test_borrar(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas=4)
         self.db.insertar(m)
         materias = self.db.obtener_todos()
         self.db.borrar(materias[0].id)
         self.assertEqual(self.db.obtener_todos(), [])
 
     def test_actualizar(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas=4)
         self.db.insertar(m)
         materias = self.db.obtener_todos()
         materias[0].nombre = "Algebra"
         materias[0].docente = "Maria"
+        materias[0].horas = 6
         self.db.actualizar(materias[0])
         result = self.db.obtener_todos()
         self.assertEqual(result[0].nombre, "Algebra")
         self.assertEqual(result[0].docente, "Maria")
+        self.assertEqual(result[0].horas, 6)
 
     def test_obtener_por_id(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas=4)
         self.db.insertar(m)
         materias = self.db.obtener_todos()
         result = self.db.obtener_por_id(materias[0].id)
@@ -104,7 +117,7 @@ class TestMateriaDB(unittest.TestCase):
 
     def test_crear_tabla_idempotente(self):
         self.db.crear_tabla()
-        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas=4)
         self.db.insertar(m)
         self.assertEqual(len(self.db.obtener_todos()), 1)
 
@@ -128,7 +141,7 @@ class TestDecoradores(unittest.TestCase):
     def test_log_agregar_imprime(self):
         captured = io.StringIO()
         sys.stdout = captured
-        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         sys.stdout = sys.__stdout__
         salida = captured.getvalue()
@@ -136,7 +149,7 @@ class TestDecoradores(unittest.TestCase):
         self.assertIn("Mate", salida)
 
     def test_log_eliminar_imprime(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         materias = self.ctrl.listar()
         captured = io.StringIO()
@@ -147,7 +160,7 @@ class TestDecoradores(unittest.TestCase):
         self.assertIn("ELIMINACION", salida)
 
     def test_log_modificar_imprime(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         materias = self.ctrl.listar()
         materias[0].nombre = "Algebra"
@@ -191,14 +204,14 @@ class TestObservador(unittest.TestCase):
     def test_observer_recibe_evento_agregar(self):
         historial = HistorialObserver()
         self.ctrl.agregar_observador(historial)
-        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         self.assertEqual(len(historial.historial), 1)
         self.assertEqual(historial.historial[0]["evento"], "agregar")
 
     def test_observer_recibe_evento_eliminar(self):
         historial = HistorialObserver()
-        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         materias = self.ctrl.listar()
         self.ctrl.agregar_observador(historial)
@@ -208,7 +221,7 @@ class TestObservador(unittest.TestCase):
 
     def test_observer_recibe_evento_modificar(self):
         historial = HistorialObserver()
-        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         materias = self.ctrl.listar()
         self.ctrl.agregar_observador(historial)
@@ -229,7 +242,7 @@ class TestObservador(unittest.TestCase):
         sys.stdout = captured
         log_obs = LogObserver()
         self.ctrl.agregar_observador(log_obs)
-        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         sys.stdout = sys.__stdout__
         self.assertIn("OBSERVER", captured.getvalue())
@@ -239,7 +252,7 @@ class TestObservador(unittest.TestCase):
         historial = HistorialObserver()
         self.ctrl.agregar_observador(historial)
         self.ctrl.eliminar_observador(historial)
-        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         self.assertEqual(len(historial.historial), 0)
 
@@ -278,31 +291,34 @@ class TestControlador(unittest.TestCase):
 
     def test_validar_horas_valido(self):
         self.assertTrue(MateriaControlador.validar_horas("4"))
+        self.assertTrue(MateriaControlador.validar_horas(4))
         self.assertTrue(MateriaControlador.validar_horas("10"))
-        self.assertTrue(MateriaControlador.validar_horas("1"))
 
     def test_validar_horas_invalido(self):
         self.assertFalse(MateriaControlador.validar_horas(""))
         self.assertFalse(MateriaControlador.validar_horas("abc"))
         self.assertFalse(MateriaControlador.validar_horas("4.5"))
         self.assertFalse(MateriaControlador.validar_horas("0"))
+        self.assertFalse(MateriaControlador.validar_horas(0))
+        self.assertFalse(MateriaControlador.validar_horas(-3))
 
     def test_agregar_profesor_valido(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         ok, _ = self.ctrl.agregar(m)
         self.assertTrue(ok)
         materias = self.ctrl.listar()
         self.assertEqual(len(materias), 1)
         self.assertEqual(materias[0].docente, "Juan Perez")
+        self.assertEqual(materias[0].horas, 4)
 
     def test_agregar_profesor_invalido_no_inserta(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan123", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan123", horas=4)
         ok, _ = self.ctrl.agregar(m)
         self.assertFalse(ok)
         self.assertEqual(self.ctrl.listar(), [])
 
     def test_agregar_horas_invalidas_no_inserta(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas="abc")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=0)
         ok, msg = self.ctrl.agregar(m)
         self.assertFalse(ok)
         self.assertIn("Horas", msg)
@@ -311,26 +327,27 @@ class TestControlador(unittest.TestCase):
         self.assertEqual(self.ctrl.listar(), [])
 
     def test_eliminar(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         materias = self.ctrl.listar()
         self.ctrl.eliminar(materias[0].id)
         self.assertEqual(self.ctrl.listar(), [])
 
     def test_modificar_materia(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas="4")
+        m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         materias = self.ctrl.listar()
         materias[0].nivel = "2"
         materias[0].nombre = "Algebra"
         materias[0].docente = "Maria Lopez"
-        materias[0].horas = "6"
+        materias[0].horas = 6
         self.ctrl.modificar(materias[0])
         result = self.ctrl.listar()
         self.assertEqual(result[0].nivel, "2")
         self.assertEqual(result[0].nombre, "Algebra")
         self.assertEqual(result[0].docente, "Maria Lopez")
-        self.assertEqual(result[0].horas, "6")
+        self.assertEqual(result[0].horas, 6)
+        self.assertIsInstance(result[0].horas, int)
 
 
 if __name__ == "__main__":

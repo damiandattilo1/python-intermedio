@@ -148,7 +148,11 @@ def crear_interfaz():
             messagebox.showwarning("Campos requeridos", "Complete todos los campos antes de agregar.")
             return
 
-        materia = Materia(nivel=nivel, nombre=nombre, docente=docente, horas=horas)
+        if not horas.isdigit() or int(horas) <= 0:
+            messagebox.showwarning("Horas invalidas", "Las horas deben ser un numero entero mayor a 0.")
+            return
+
+        materia = Materia(nivel=nivel, nombre=nombre, docente=docente, horas=int(horas))
         ok, msg = ctrl.agregar(materia)
         if not ok:
             messagebox.showwarning("Error de validacion", msg)
@@ -189,7 +193,7 @@ def crear_interfaz():
             messagebox.showwarning("Horas invalidas", "Las horas deben ser un numero entero mayor a 0.")
             return
 
-        materia = Materia(id=int(valores[0]), nivel=nivel, nombre=nombre, docente=docente, horas=horas)
+        materia = Materia(id=int(valores[0]), nivel=nivel, nombre=nombre, docente=docente, horas=int(horas))
         ctrl.modificar(materia)
         actualizar_tabla()
 

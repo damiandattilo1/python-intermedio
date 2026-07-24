@@ -7,12 +7,12 @@ _DIRECTORIO = os.path.dirname(os.path.abspath(__file__))
 class Materia:
     """Representa una materia con sus atributos."""
 
-    def __init__(self, id=None, nivel="1", nombre="", docente="", horas="4"):
+    def __init__(self, id=None, nivel="1", nombre="", docente="", horas=4):
         self.id = id
         self.nivel = nivel
         self.nombre = nombre
         self.docente = docente
-        self.horas = horas
+        self.horas = int(horas)
 
     def __repr__(self):
         return f"Materia(id={self.id}, nivel={self.nivel}, nombre={self.nombre}, docente={self.docente}, horas={self.horas})"
@@ -28,7 +28,7 @@ class Materia:
 
     @classmethod
     def desde_fila(cls, fila):
-        return cls(id=fila[0], nivel=fila[1], nombre=fila[2], docente=fila[3], horas=fila[4])
+        return cls(id=fila[0], nivel=fila[1], nombre=fila[2], docente=fila[3], horas=int(fila[4]))
 
 
 class MateriaDB:
@@ -51,7 +51,7 @@ class MateriaDB:
                     nivel TEXT,
                     nombre TEXT,
                     docente TEXT,
-                    horas TEXT
+                    horas INTEGER
                 )
             """)
             con.commit()
