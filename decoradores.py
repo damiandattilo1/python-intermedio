@@ -2,20 +2,6 @@ import functools
 import datetime
 
 
-def log_registro(accion):
-    """Decorador que registra en consola cada operacion CRUD."""
-
-    def decorador(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            resultado = func(*args, **kwargs)
-            momento = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print(f"[{momento}] {accion}")
-            return resultado
-        return wrapper
-    return decorador
-
-
 def log_agregar(func):
     """Registra cuando se agrega un nuevo registro."""
     @functools.wraps(func)

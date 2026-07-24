@@ -4,10 +4,13 @@ import sys
 import tempfile
 import unittest
 
-from modelo import Materia, MateriaDB
+from modelo import Materia
+from patrones import MateriaDB, MateriaFactory, CalendarioExterno, CalendarioAdapter, FormatoMateriasDirecto
+from patrones import MateriaBasica, MateriaIntermedia, MateriaAvanzada
+from observador import TemaConcreto, ConcreteObserverA, ConcreteObserverB
 from controlador import MateriaControlador
-from decoradores import log_agregar, log_eliminar, log_modificar, log_registro
-from observador import Subject, Observer, LogObserver, HistorialObserver
+from decoradores import log_agregar, log_eliminar, log_modificar
+from observador import Subject, LogObserver, HistorialObserver
 
 
 # ============================
@@ -63,67 +66,149 @@ class TestMateria(unittest.TestCase):
         self.assertIn("Mate", repr(m))
 
 
-class TestMateriaDB(unittest.TestCase):
+# ============================
+# PATRÓN SINGLETON
+# ============================
+
+class TestSingleton(unittest.TestCase):
 
     def setUp(self):
         self._tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
         self._tmp.close()
-        self.db = MateriaDB(self._tmp.name)
-        self.db.crear_tabla()
 
     def tearDown(self):
+        MateriaDB.instancia = None
         os.unlink(self._tmp.name)
 
-    def test_insertar_y_obtener(self):
+    def test_misma_instancia(self):
+        db1 = MateriaDB(self._tmp.name)
+        db2 = MateriaDB(self._tmp.name)
+        self.assertIs(db1, db2)
+
+    def test_instancia_comparte_estado(self):
+        db1 = MateriaDB(self._tmp.name)
+        db1.crear_tabla()
         m = Materia(nivel="1", nombre="Mate", docente="Juan", horas=4)
-        self.db.insertar(m)
-        materias = self.db.obtener_todos()
+        db1.insertar(m)
+
+        db2 = MateriaDB(self._tmp.name)
+        materias = db2.obtener_todos()
         self.assertEqual(len(materias), 1)
-        self.assertEqual(materias[0].nombre, "Mate")
-        self.assertEqual(materias[0].horas, 4)
-        self.assertIsInstance(materias[0].horas, int)
 
-    def test_borrar(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas=4)
-        self.db.insertar(m)
-        materias = self.db.obtener_todos()
-        self.db.borrar(materias[0].id)
-        self.assertEqual(self.db.obtener_todos(), [])
-
-    def test_actualizar(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas=4)
-        self.db.insertar(m)
-        materias = self.db.obtener_todos()
-        materias[0].nombre = "Algebra"
-        materias[0].docente = "Maria"
-        materias[0].horas = 6
-        self.db.actualizar(materias[0])
-        result = self.db.obtener_todos()
-        self.assertEqual(result[0].nombre, "Algebra")
-        self.assertEqual(result[0].docente, "Maria")
-        self.assertEqual(result[0].horas, 6)
-
-    def test_obtener_por_id(self):
-        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas=4)
-        self.db.insertar(m)
-        materias = self.db.obtener_todos()
-        result = self.db.obtener_por_id(materias[0].id)
-        self.assertIsNotNone(result)
-        self.assertEqual(result.nombre, "Mate")
-
-    def test_obtener_por_id_inexistente(self):
-        result = self.db.obtener_por_id(999)
-        self.assertIsNone(result)
-
-    def test_crear_tabla_idempotente(self):
-        self.db.crear_tabla()
-        m = Materia(nivel="1", nombre="Mate", docente="Juan", horas=4)
-        self.db.insertar(m)
-        self.assertEqual(len(self.db.obtener_todos()), 1)
+    def test_singleton_con_diferentes_paths(self):
+        db1 = MateriaDB(self._tmp.name)
+        db2 = MateriaDB("/tmp/otra.db")
+        self.assertIs(db1, db2)
 
 
 # ============================
-# 3) Decoradores
+# PATRÓN FACTORY
+# ============================
+
+class TestFactory(unittest.TestCase):
+
+    def test_crear_basica(self):
+        m = MateriaFactory.crear("1", nombre="Mate", docente="Juan", horas=4)
+        self.assertIsInstance(m, MateriaBasica)
+        self.assertEqual(m.tipo, "Basica")
+        self.assertEqual(m.nombre, "Mate")
+
+    def test_crear_intermedia(self):
+        m = MateriaFactory.crear("3", nombre="Quimica", docente="Ana", horas=5)
+        self.assertIsInstance(m, MateriaIntermedia)
+        self.assertEqual(m.tipo, "Intermedia")
+
+    def test_crear_avanzada(self):
+        m = MateriaFactory.crear("5", nombre="Calculo", docente="Pedro", horas=6)
+        self.assertIsInstance(m, MateriaAvanzada)
+        self.assertEqual(m.tipo, "Avanzada")
+
+    def test_crear_nivel_default_basica(self):
+        m = MateriaFactory.crear("2", nombre="Fisica", docente="Luis")
+        self.assertIsInstance(m, MateriaBasica)
+
+    def test_descripcion_basica(self):
+        m = MateriaFactory.crear("1", nombre="Mate", docente="Juan")
+        self.assertIn("Basica", m.descripcion())
+        self.assertIn("Mate", m.descripcion())
+
+    def test_descripcion_avanzada(self):
+        m = MateriaFactory.crear("5", nombre="Calculo", docente="Pedro", horas=6)
+        desc = m.descripcion()
+        self.assertIn("Avanzada", desc)
+        self.assertIn("6hs", desc)
+
+
+# ============================
+# PATRÓN ADAPTER
+# ============================
+
+class TestAdapter(unittest.TestCase):
+
+    def test_adapter_calendario(self):
+        calendario = CalendarioExterno()
+        adapter = CalendarioAdapter(calendario)
+        resultado = adapter.listar_materias_formateadas()
+        self.assertEqual(len(resultado), 2)
+        self.assertEqual(resultado[0]["nombre"], "Clase de Matematica")
+        self.assertEqual(resultado[0]["horas"], 1)
+
+    def test_adapter_directo(self):
+        materias = [Materia(nombre="Mate", nivel="1", horas=4)]
+        adapter = FormatoMateriasDirecto(materias)
+        resultado = adapter.listar_materias_formateadas()
+        self.assertEqual(len(resultado), 1)
+        self.assertEqual(resultado[0]["nombre"], "Mate")
+        self.assertEqual(resultado[0]["horas"], 4)
+
+    def test_adapter_formato_compatido(self):
+        calendario = CalendarioExterno()
+        adapter = CalendarioAdapter(calendario)
+        self.assertTrue(hasattr(adapter, "listar_materias_formateadas"))
+
+    def test_formato_materias_directo_herencia(self):
+        from patrones import FormatoMaterias
+        adapter = FormatoMateriasDirecto([])
+        self.assertIsInstance(adapter, FormatoMaterias)
+
+
+# ============================
+# PATRÓN OBSERVER (Tema/Concreto)
+# ============================
+
+class TestObserverCurso(unittest.TestCase):
+
+    def test_tema_concreto_notifica(self):
+        tema = TemaConcreto()
+        observer = ConcreteObserverA(tema)
+        tema.set_estado({"evento": "agregar", "nombre": "Mate"})
+        self.assertEqual(observer.estado["evento"], "agregar")
+
+    def test_dos_observers_notificados(self):
+        tema = TemaConcreto()
+        obs_a = ConcreteObserverA(tema)
+        obs_b = ConcreteObserverB(tema)
+        tema.set_estado({"evento": "eliminar", "id": 1})
+        self.assertEqual(obs_a.estado["evento"], "eliminar")
+        self.assertEqual(len(obs_b.historial), 1)
+
+    def test_historial_observer(self):
+        tema = TemaConcreto()
+        obs_b = ConcreteObserverB(tema)
+        tema.set_estado({"evento": "modificar", "nombre": "Algebra"})
+        tema.set_estado({"evento": "listar", "cantidad": 5})
+        self.assertEqual(len(obs_b.historial), 2)
+
+    def test_quitar_observer(self):
+        tema = TemaConcreto()
+        obs_a = ConcreteObserverA(tema)
+        tema.quitar(obs_a)
+        tema.set_estado({"evento": "agregar", "nombre": "Mate"})
+        self.assertIsNone(obs_a.estado)
+
+
+# ============================
+# 3) DECORADORES
 # ============================
 
 class TestDecoradores(unittest.TestCase):
@@ -132,10 +217,13 @@ class TestDecoradores(unittest.TestCase):
         self._tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
         self._tmp.close()
         self.ctrl = MateriaControlador()
-        self.ctrl._db = MateriaDB(self._tmp.name)
+        from patrones import MateriaDB as SingletonDB
+        MateriaDB.instancia = None
+        self.ctrl._db = SingletonDB(self._tmp.name)
         self.ctrl._db.crear_tabla()
 
     def tearDown(self):
+        MateriaDB.instancia = None
         os.unlink(self._tmp.name)
 
     def test_log_agregar_imprime(self):
@@ -172,33 +260,25 @@ class TestDecoradores(unittest.TestCase):
         self.assertIn("ACTUALIZACION", salida)
         self.assertIn("Algebra", salida)
 
-    def test_decorador_log_registro(self):
-        @log_registro("TEST ACCION")
-        def mi_funcion():
-            return 42
-
-        captured = io.StringIO()
-        sys.stdout = captured
-        result = mi_funcion()
-        sys.stdout = sys.__stdout__
-        self.assertEqual(result, 42)
-        self.assertIn("TEST ACCION", captured.getvalue())
 
 
 # ============================
-# 4) Patrón observador
+# 4) PATRÓN OBSERVER (legacy)
 # ============================
 
-class TestObservador(unittest.TestCase):
+class TestObservadorLegacy(unittest.TestCase):
 
     def setUp(self):
         self._tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
         self._tmp.close()
         self.ctrl = MateriaControlador()
-        self.ctrl._db = MateriaDB(self._tmp.name)
+        from patrones import MateriaDB as SingletonDB
+        MateriaDB.instancia = None
+        self.ctrl._db = SingletonDB(self._tmp.name)
         self.ctrl._db.crear_tabla()
 
     def tearDown(self):
+        MateriaDB.instancia = None
         os.unlink(self._tmp.name)
 
     def test_observer_recibe_evento_agregar(self):
@@ -274,10 +354,13 @@ class TestControlador(unittest.TestCase):
         self._tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
         self._tmp.close()
         self.ctrl = MateriaControlador()
-        self.ctrl._db = MateriaDB(self._tmp.name)
+        from patrones import MateriaDB as SingletonDB
+        MateriaDB.instancia = None
+        self.ctrl._db = SingletonDB(self._tmp.name)
         self.ctrl._db.crear_tabla()
 
     def tearDown(self):
+        MateriaDB.instancia = None
         os.unlink(self._tmp.name)
 
     def test_validar_profesor_valido(self):

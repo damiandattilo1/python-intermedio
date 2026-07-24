@@ -1,5 +1,6 @@
 import re
-from modelo import Materia, MateriaDB
+from patrones import MateriaDB
+from modelo import Materia
 from decoradores import log_agregar, log_eliminar, log_modificar
 from observador import Subject
 
