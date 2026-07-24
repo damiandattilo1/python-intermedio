@@ -1,6 +1,5 @@
-import io
+import logging
 import os
-import sys
 import tempfile
 import unittest
 
@@ -227,38 +226,29 @@ class TestDecoradores(unittest.TestCase):
         os.unlink(self._tmp.name)
 
     def test_log_agregar_imprime(self):
-        captured = io.StringIO()
-        sys.stdout = captured
         m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
-        self.ctrl.agregar(m)
-        sys.stdout = sys.__stdout__
-        salida = captured.getvalue()
-        self.assertIn("INGRESO", salida)
-        self.assertIn("Mate", salida)
+        with self.assertLogs("decoradores", level="INFO") as cm:
+            self.ctrl.agregar(m)
+        self.assertTrue(any("INGRESO" in msg for msg in cm.output))
+        self.assertTrue(any("Mate" in msg for msg in cm.output))
 
     def test_log_eliminar_imprime(self):
         m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         materias = self.ctrl.listar()
-        captured = io.StringIO()
-        sys.stdout = captured
-        self.ctrl.eliminar(materias[0].id)
-        sys.stdout = sys.__stdout__
-        salida = captured.getvalue()
-        self.assertIn("ELIMINACION", salida)
+        with self.assertLogs("decoradores", level="INFO") as cm:
+            self.ctrl.eliminar(materias[0].id)
+        self.assertTrue(any("ELIMINACION" in msg for msg in cm.output))
 
     def test_log_modificar_imprime(self):
         m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
         self.ctrl.agregar(m)
         materias = self.ctrl.listar()
         materias[0].nombre = "Algebra"
-        captured = io.StringIO()
-        sys.stdout = captured
-        self.ctrl.modificar(materias[0])
-        sys.stdout = sys.__stdout__
-        salida = captured.getvalue()
-        self.assertIn("ACTUALIZACION", salida)
-        self.assertIn("Algebra", salida)
+        with self.assertLogs("decoradores", level="INFO") as cm:
+            self.ctrl.modificar(materias[0])
+        self.assertTrue(any("ACTUALIZACION" in msg for msg in cm.output))
+        self.assertTrue(any("Algebra" in msg for msg in cm.output))
 
 
 
@@ -318,15 +308,13 @@ class TestObservadorLegacy(unittest.TestCase):
         self.assertEqual(historial.historial[0]["evento"], "listar")
 
     def test_log_observer_imprime(self):
-        captured = io.StringIO()
-        sys.stdout = captured
         log_obs = LogObserver()
         self.ctrl.agregar_observador(log_obs)
         m = Materia(nivel="1", nombre="Mate", docente="Juan Perez", horas=4)
-        self.ctrl.agregar(m)
-        sys.stdout = sys.__stdout__
-        self.assertIn("OBSERVER", captured.getvalue())
-        self.assertIn("Mate", captured.getvalue())
+        with self.assertLogs("observador", level="INFO") as cm:
+            self.ctrl.agregar(m)
+        self.assertTrue(any("OBSERVER" in msg for msg in cm.output))
+        self.assertTrue(any("Mate" in msg for msg in cm.output))
 
     def test_eliminar_observador(self):
         historial = HistorialObserver()

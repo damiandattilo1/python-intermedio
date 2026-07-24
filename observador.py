@@ -1,4 +1,6 @@
-import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
@@ -60,22 +62,21 @@ class ConcreteObserverA(Observador):
         self.estado = None
 
     def update(self):
-        momento = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.estado = self.observador_a.get_estado()
         if isinstance(self.estado, dict):
             evento = self.estado.get("evento", "")
             if evento == "agregar":
                 nombre = self.estado.get("nombre", "?")
-                print(f"[{momento}] [Observer A] INGRESO: Nueva materia '{nombre}'")
+                logger.info("[Observer A] INGRESO: Nueva materia '%s'", nombre)
             elif evento == "eliminar":
                 mi_id = self.estado.get("id", "?")
-                print(f"[{momento}] [Observer A] ELIMINACION: Materia ID {mi_id}")
+                logger.info("[Observer A] ELIMINACION: Materia ID %s", mi_id)
             elif evento == "modificar":
                 nombre = self.estado.get("nombre", "?")
-                print(f"[{momento}] [Observer A] ACTUALIZACION: Materia '{nombre}'")
+                logger.info("[Observer A] ACTUALIZACION: Materia '%s'", nombre)
             elif evento == "listar":
                 cantidad = self.estado.get("cantidad", 0)
-                print(f"[{momento}] [Observer A] CONSULTA: {cantidad} materias")
+                logger.info("[Observer A] CONSULTA: %s materias", cantidad)
 
 
 class ConcreteObserverB(Observador):
@@ -87,9 +88,8 @@ class ConcreteObserverB(Observador):
         self.historial = []
 
     def update(self):
-        momento = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         estado = self.observador_b.get_estado()
-        self.historial.append({"momento": momento, "estado": estado})
+        self.historial.append({"estado": estado})
 
     def obtener_historial(self):
         return list(self.historial)
@@ -138,22 +138,21 @@ class Observer:
     pass
 
 class LogObserver(Observer):
-    """Observador que registra eventos CRUD en consola."""
+    """Observador que registra eventos CRUD via logging."""
 
     def actualizar(self, evento, datos=None):
-        momento = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if evento == "agregar":
             nombre = datos.nombre if datos else "?"
-            print(f"[{momento}] [OBSERVER] INGRESO: Nueva materia '{nombre}' registrada")
+            logger.info("[OBSERVER] INGRESO: Nueva materia '%s' registrada", nombre)
         elif evento == "eliminar":
             mi_id = datos.get("id", "?") if datos else "?"
-            print(f"[{momento}] [OBSERVER] ELIMINACION: Materia ID {mi_id} eliminada")
+            logger.info("[OBSERVER] ELIMINACION: Materia ID %s eliminada", mi_id)
         elif evento == "modificar":
             nombre = datos.nombre if datos else "?"
-            print(f"[{momento}] [OBSERVER] ACTUALIZACION: Materia '{nombre}' modificada")
+            logger.info("[OBSERVER] ACTUALIZACION: Materia '%s' modificada", nombre)
         elif evento == "listar":
             cantidad = datos.get("cantidad", 0) if datos else 0
-            print(f"[{momento}] [OBSERVER] CONSULTA: Listado de {cantidad} materias")
+            logger.info("[OBSERVER] CONSULTA: Listado de %s materias", cantidad)
 
     def update(self):
         pass
@@ -166,8 +165,7 @@ class HistorialObserver(Observer):
         self.historial = []
 
     def actualizar(self, evento, datos=None):
-        momento = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.historial.append({"momento": momento, "evento": evento, "datos": datos})
+        self.historial.append({"evento": evento, "datos": datos})
 
     def update(self):
         pass
