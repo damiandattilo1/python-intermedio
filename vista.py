@@ -7,7 +7,7 @@ def crear_interfaz():
 
     root = tk.Tk()
     root.title("Gestion de Materias")
-    root.minsize(600, 450)
+    root.minsize(800, 450)
 
     # Centrar ventana
     root.update_idletasks()
@@ -146,13 +146,14 @@ def crear_interfaz():
 
         valores = tree.item(seleccion[0])["values"]
         mi_id = int(valores[0])
-        nuevo = widgets["docente"].get().strip()
+        nombre = widgets["nombre"].get().strip()
+        docente = widgets["docente"].get().strip()
 
-        if not nuevo:
-            messagebox.showwarning("Campo requerido", "Ingrese el nuevo nombre del docente.")
+        if not nombre or not docente:
+            messagebox.showwarning("Campos requeridos", "Ingrese nombre y docente.")
             return
 
-        controlador.Materia.modificar_docente(mi_id, nuevo)
+        controlador.Materia.modificar(mi_id, nombre, docente)
         actualizar_tabla()
 
     # Asignar comandos reales

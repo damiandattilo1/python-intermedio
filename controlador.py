@@ -36,9 +36,9 @@ class Materia:
             con.close()
 
     @staticmethod
-    def modificar_docente(mi_id, nuevo_docente):
+    def modificar(mi_id, nombre, docente):
         con = modelo.crear_base()
         try:
-            modelo.actualizar_docente(con, nuevo_docente, mi_id)
+            modelo.actualizar_materia(con, nombre, docente, mi_id)
         finally:
             con.close()

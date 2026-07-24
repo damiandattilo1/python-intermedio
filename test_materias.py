@@ -31,12 +31,13 @@ class TestModelo(unittest.TestCase):
         modelo.borrar(self.con, mi_id)
         self.assertEqual(modelo.obtener_todos(self.con), [])
 
-    def test_actualizar_docente(self):
+    def test_actualizar_materia(self):
         modelo.insertar(self.con, ("1", "Mate", "Juan", "4"))
         filas = modelo.obtener_todos(self.con)
         mi_id = filas[0][0]
-        modelo.actualizar_docente(self.con, "Maria Lopez", mi_id)
+        modelo.actualizar_materia(self.con, "Algebra", "Maria Lopez", mi_id)
         filas = modelo.obtener_todos(self.con)
+        self.assertEqual(filas[0][2], "Algebra")
         self.assertEqual(filas[0][3], "Maria Lopez")
 
     def test_crear_tabla_idempotente(self):
@@ -94,12 +95,13 @@ class TestControlador(unittest.TestCase):
         controlador.Materia.eliminar(mi_id)
         self.assertEqual(controlador.Materia.listar(), [])
 
-    def test_modificar_docente(self):
+    def test_modificar_materia(self):
         controlador.Materia.agregar(("1", "Mate", "Juan Perez", "4"))
         filas = controlador.Materia.listar()
         mi_id = filas[0][0]
-        controlador.Materia.modificar_docente(mi_id, "Maria Lopez")
+        controlador.Materia.modificar(mi_id, "Algebra", "Maria Lopez")
         filas = controlador.Materia.listar()
+        self.assertEqual(filas[0][2], "Algebra")
         self.assertEqual(filas[0][3], "Maria Lopez")
 
 
