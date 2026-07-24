@@ -1,9 +1,14 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-import controlador
+from modelo import Materia
+from controlador import MateriaControlador
+from observador import LogObserver
 
 
 def crear_interfaz():
+
+    ctrl = MateriaControlador()
+    ctrl.agregar_observador(LogObserver())
 
     root = tk.Tk()
     root.title("Gestion de Materias")
@@ -16,7 +21,6 @@ def crear_interfaz():
     y = (root.winfo_screenheight() // 2) - (h // 2)
     root.geometry(f"{w}x{h}+{x}+{y}")
 
-    # Estilo con colores alternados en el Treeview
     estilo = ttk.Style()
     estilo.configure("Treeview", rowheight=24)
     estilo.map("Treeview", background=[("selected", "#0078d4")])
@@ -88,7 +92,6 @@ def crear_interfaz():
     tree.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
 
-    # Colores alternados para filas
     tree.tag_configure("par", background="#f0f0f0")
     tree.tag_configure("impar", background="#ffffff")
 
@@ -128,12 +131,12 @@ def crear_interfaz():
         for fila in tree.get_children():
             tree.delete(fila)
 
-        filas = controlador.Materia.listar()
-        for i, fila in enumerate(filas):
+        materias = ctrl.listar()
+        for i, m in enumerate(materias):
             tag = "par" if i % 2 == 0 else "impar"
-            tree.insert("", "end", values=fila, tags=(tag,))
+            tree.insert("", "end", values=(m.id, m.nivel, m.nombre, m.docente, m.horas), tags=(tag,))
 
-        status_var.set(f"Materias: {len(filas)}")
+        status_var.set(f"Materias: {len(materias)}")
 
     def agregar():
         nivel = widgets["nivel"].get()
@@ -145,7 +148,8 @@ def crear_interfaz():
             messagebox.showwarning("Campos requeridos", "Complete todos los campos antes de agregar.")
             return
 
-        ok, msg = controlador.Materia.agregar((nivel, nombre, docente, horas))
+        materia = Materia(nivel=nivel, nombre=nombre, docente=docente, horas=horas)
+        ok, msg = ctrl.agregar(materia)
         if not ok:
             messagebox.showwarning("Error de validacion", msg)
             return
@@ -161,7 +165,7 @@ def crear_interfaz():
 
         valores = tree.item(seleccion[0])["values"]
         if messagebox.askyesno("Confirmar", f"Eliminar materia '{valores[2]}'?"):
-            controlador.Materia.eliminar(int(valores[0]))
+            ctrl.eliminar(int(valores[0]))
             limpiar_formulario()
             actualizar_tabla()
 
@@ -172,7 +176,6 @@ def crear_interfaz():
             return
 
         valores = tree.item(seleccion[0])["values"]
-        mi_id = int(valores[0])
         nivel = widgets["nivel"].get()
         nombre = widgets["nombre"].get().strip()
         docente = widgets["docente"].get().strip()
@@ -186,7 +189,8 @@ def crear_interfaz():
             messagebox.showwarning("Horas invalidas", "Las horas deben ser un numero entero mayor a 0.")
             return
 
-        controlador.Materia.modificar(mi_id, nivel, nombre, docente, horas)
+        materia = Materia(id=int(valores[0]), nivel=nivel, nombre=nombre, docente=docente, horas=horas)
+        ctrl.modificar(materia)
         actualizar_tabla()
 
     # Asignar comandos
@@ -196,14 +200,10 @@ def crear_interfaz():
 
     tree.bind("<<TreeviewSelect>>", cargar_seleccion)
 
-    # Atajos de teclado
     root.bind("<Return>", lambda e: agregar())
     root.bind("<Delete>", lambda e: eliminar())
 
-    # Focus inicial
     widgets["nombre"].focus_set()
-
-    # Cargar datos al iniciar
     actualizar_tabla()
 
     root.mainloop()
