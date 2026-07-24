@@ -7,14 +7,19 @@ def crear_interfaz():
 
     root = tk.Tk()
     root.title("Gestion de Materias")
-    root.minsize(800, 450)
+    root.minsize(750, 480)
 
     # Centrar ventana
     root.update_idletasks()
-    w, h = 620, 470
+    w, h = 780, 500
     x = (root.winfo_screenwidth() // 2) - (w // 2)
     y = (root.winfo_screenheight() // 2) - (h // 2)
     root.geometry(f"{w}x{h}+{x}+{y}")
+
+    # Estilo con colores alternados en el Treeview
+    estilo = ttk.Style()
+    estilo.configure("Treeview", rowheight=24)
+    estilo.map("Treeview", background=[("selected", "#0078d4")])
 
     main = ttk.Frame(root, padding=10)
     main.pack(fill="both", expand=True)
@@ -23,20 +28,20 @@ def crear_interfaz():
     # FORMULARIO
     # ---------------------
 
-    form_frame = ttk.LabelFrame(main, text=" Nueva Materia ", padding=10)
-    form_frame.pack(fill="x", pady=(0, 10))
+    form_frame = ttk.LabelFrame(main, text=" Datos de la Materia ", padding=(12, 6))
+    form_frame.pack(fill="x", pady=(0, 8))
 
     campos = [
         ("Nivel:", "nivel", ttk.Combobox(form_frame, values=["1", "2", "3", "4", "5"], width=5, state="readonly")),
-        ("Nombre:", "nombre", ttk.Entry(form_frame, width=30)),
-        ("Docente:", "docente", ttk.Entry(form_frame, width=30)),
-        ("Horas:", "horas", ttk.Entry(form_frame, width=8)),
+        ("Nombre:", "nombre", ttk.Entry(form_frame, width=28)),
+        ("Docente:", "docente", ttk.Entry(form_frame, width=28)),
+        ("Horas:", "horas", ttk.Entry(form_frame, width=6)),
     ]
 
     widgets = {}
     for i, (label, key, widget) in enumerate(campos):
-        ttk.Label(form_frame, text=label).grid(row=0, column=i * 2, padx=(8 if i > 0 else 0, 4), pady=2, sticky="e")
-        widget.grid(row=0, column=i * 2 + 1, padx=(0, 8), pady=2, sticky="w")
+        ttk.Label(form_frame, text=label).grid(row=0, column=i * 2, padx=(10 if i > 0 else 0, 4), pady=4, sticky="e")
+        widget.grid(row=0, column=i * 2 + 1, padx=(0, 10), pady=4, sticky="w")
         widgets[key] = widget
 
     widgets["nivel"].current(0)
@@ -46,15 +51,15 @@ def crear_interfaz():
     # ---------------------
 
     btn_frame = ttk.Frame(main)
-    btn_frame.pack(fill="x", pady=(0, 10))
+    btn_frame.pack(fill="x", pady=(0, 8))
 
-    btn_agregar = ttk.Button(btn_frame, text="Agregar", command=lambda: None)
-    btn_eliminar = ttk.Button(btn_frame, text="Eliminar", command=lambda: None)
-    btn_modificar = ttk.Button(btn_frame, text="Modificar", command=lambda: None)
+    btn_agregar = ttk.Button(btn_frame, text="Agregar")
+    btn_modificar = ttk.Button(btn_frame, text="Guardar cambios")
+    btn_eliminar = ttk.Button(btn_frame, text="Eliminar")
 
     btn_agregar.pack(side="left", padx=(0, 5))
-    btn_eliminar.pack(side="left", padx=5)
     btn_modificar.pack(side="left", padx=5)
+    btn_eliminar.pack(side="left", padx=5)
 
     # ---------------------
     # TREEVIEW
@@ -70,8 +75,8 @@ def crear_interfaz():
 
     tree.column("id", width=40, anchor="center")
     tree.column("nivel", width=50, anchor="center")
-    tree.column("nombre", width=180)
-    tree.column("docente", width=180)
+    tree.column("nombre", width=220)
+    tree.column("docente", width=220)
     tree.column("horas", width=60, anchor="center")
 
     for col in columnas:
@@ -83,6 +88,18 @@ def crear_interfaz():
     tree.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
 
+    # Colores alternados para filas
+    tree.tag_configure("par", background="#f0f0f0")
+    tree.tag_configure("impar", background="#ffffff")
+
+    # ---------------------
+    # BARRA DE ESTADO
+    # ---------------------
+
+    status_var = tk.StringVar(value="Materias: 0")
+    status_bar = ttk.Label(root, textvariable=status_var, relief="sunken", anchor="w", padding=(6, 2))
+    status_bar.pack(side="bottom", fill="x")
+
     # ---------------------
     # FUNCIONES UI
     # ---------------------
@@ -92,6 +109,7 @@ def crear_interfaz():
         widgets["docente"].delete(0, "end")
         widgets["horas"].delete(0, "end")
         widgets["nivel"].current(0)
+        widgets["nombre"].focus_set()
 
     def cargar_seleccion(event=None):
         seleccion = tree.selection()
@@ -109,8 +127,13 @@ def crear_interfaz():
     def actualizar_tabla():
         for fila in tree.get_children():
             tree.delete(fila)
-        for fila in controlador.Materia.listar():
-            tree.insert("", "end", values=fila)
+
+        filas = controlador.Materia.listar()
+        for i, fila in enumerate(filas):
+            tag = "par" if i % 2 == 0 else "impar"
+            tree.insert("", "end", values=fila, tags=(tag,))
+
+        status_var.set(f"Materias: {len(filas)}")
 
     def agregar():
         nivel = widgets["nivel"].get()
@@ -139,6 +162,7 @@ def crear_interfaz():
         valores = tree.item(seleccion[0])["values"]
         if messagebox.askyesno("Confirmar", f"Eliminar materia '{valores[2]}'?"):
             controlador.Materia.eliminar(int(valores[0]))
+            limpiar_formulario()
             actualizar_tabla()
 
     def modificar():
@@ -165,12 +189,19 @@ def crear_interfaz():
         controlador.Materia.modificar(mi_id, nivel, nombre, docente, horas)
         actualizar_tabla()
 
-    # Asignar comandos reales
+    # Asignar comandos
     btn_agregar.config(command=agregar)
-    btn_eliminar.config(command=eliminar)
     btn_modificar.config(command=modificar)
+    btn_eliminar.config(command=eliminar)
 
     tree.bind("<<TreeviewSelect>>", cargar_seleccion)
+
+    # Atajos de teclado
+    root.bind("<Return>", lambda e: agregar())
+    root.bind("<Delete>", lambda e: eliminar())
+
+    # Focus inicial
+    widgets["nombre"].focus_set()
 
     # Cargar datos al iniciar
     actualizar_tabla()
