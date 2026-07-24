@@ -1,8 +1,10 @@
+import os
 import sqlite3
-import controlador
+
+_DIRECTORIO = os.path.dirname(os.path.abspath(__file__))
 
 def crear_base():
-    return sqlite3.connect("materias.db")
+    return sqlite3.connect(os.path.join(_DIRECTORIO, "materias.db"))
 
 def crear_tabla(con):
     cursor = con.cursor()

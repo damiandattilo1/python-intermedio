@@ -1,11 +1,11 @@
-from tkinter import *
+import tkinter as tk
 from tkinter import ttk
 import controlador
 
 
 def crear_interfaz():
 
-    root = Tk()
+    root = tk.Tk()
     root.title("Gestión de Materias")
 
     frm = ttk.Frame(root, padding=10)
@@ -34,8 +34,8 @@ def crear_interfaz():
 
     ttk.Label(frm, text="Cantidad Horas").grid(row=3, column=0, padx=5, pady=5)
 
-    widgets["cantidadHoras"] = ttk.Entry(frm)
-    widgets["cantidadHoras"].grid(row=3, column=1, padx=5, pady=5)
+    widgets["horas"] = ttk.Entry(frm)
+    widgets["horas"].grid(row=3, column=1, padx=5, pady=5)
 
     # ---------------------
     # TREEVIEW
@@ -43,11 +43,11 @@ def crear_interfaz():
 
     tree = ttk.Treeview(
         frm,
-        columns=("id", "nivel", "nombre", "docente", "cantidadHoras"),
+        columns=("id", "nivel", "nombre", "docente", "horas"),
         show="headings"
     )
 
-    for col in ("id", "nivel", "nombre", "docente", "cantidadHoras"):
+    for col in ("id", "nivel", "nombre", "docente", "horas"):
         tree.heading(col, text=col)
 
     tree.grid(row=5, column=0, columnspan=4, pady=10)
@@ -68,7 +68,7 @@ def crear_interfaz():
             widgets["nivel"].get(),
             widgets["nombre"].get(),
             widgets["docente"].get(),
-            widgets["cantidadHoras"].get(),
+            widgets["horas"].get(),
         )
 
         controlador.Materia.agregar(datos)
@@ -81,9 +81,9 @@ def crear_interfaz():
             return
 
         item = tree.item(seleccion)
-        mi_id = item["values"][0]
+        mi_id = int(item["values"][0])
 
-        controlador.eliminar(mi_id)
+        controlador.Materia.eliminar(mi_id)
         actualizar_tabla()
 
     def modificar():
@@ -93,11 +93,11 @@ def crear_interfaz():
             return
 
         item = tree.item(seleccion)
-        mi_id = item["values"][0]
+        mi_id = int(item["values"][0])
 
         nuevo = widgets["docente"].get()
 
-        controlador.modificar_docente(mi_id, nuevo)
+        controlador.Materia.modificar_docente(mi_id, nuevo)
         actualizar_tabla()
 
     # ---------------------
